@@ -90,6 +90,54 @@ template <typename WIRE, typename DATA, uint8_t ANALOG_PORT=ZZZ_M5STACKPBHUB0, u
 		}
 };
 
+/**
+ * Driver to read SHT3X sensor via I2C
+ * @param ADDRESS I2C address to access SHT3X
+ * @param WIRE template parameter allow to define custom Wire library
+ * @param DATA_TEMPERATURE template param to specify class to use for temperature data processing. It must be of type ZzzData<int>
+ * @param DATA_HUMIDITY template param to specify class to use for humidity data processing. It must be of type ZzzData<int>
+ */
+template <typename WIRE, typename DATA_TEMPERATURE, typename DATA_HUMIDITY, uint8_t ADDRESS=0x44> class ZzzInputDriverI2CSHT3X : public ZzzInputDriver {
+	protected:
+		WIRE *_pWire;
+
+	public:
+		DATA_TEMPERATURE temperature;
+		DATA_HUMIDITY humidity;
+
+		ZzzInputDriverI2CSHT3X(WIRE& pParams) {
+			_pWire=&pParams;
+			_pWire->begin();
+		}
+
+		virtual bool read() override {
+			_pWire->beginTransmission(ADDRESS);
+			//Send measurement command
+			_pWire->write(0x2C);
+			_pWire->write(0x06);
+			if (_pWire->endTransmission() != 0) { //communication error
+				return false;
+			}
+
+			// Data is 6 bytes: Temperature MSB,LSB,CRC, humidity MSB,LSB,CRC
+			uint8_t data[6];
+			_pWire->requestFrom(ADDRESS, (uint8_t)6);
+			for (int i=0;i<6;i++) {
+				data[i]=_pWire->read();
+			}
+			uint16_t valueT=(data[0]<<8) | data[1];
+			uint16_t valueH=(data[3]<<8) | data[4];
+
+			//Temperature range is -45 - 130°C
+			long longTemperature=((valueT*175L)/65535)-45; //TODO *100 to keep 2 decimal digits ((valueT*17500)/65535)-4500);
+			temperature.add(longTemperature);
+			//Humidity range is 0 - 100 %
+			long longHumidity=(valueH*100L)/65535; //TODO *100 to keep 2 decimal digits (valueT*10000)/65535);
+			humidity.add(longHumidity);
+			return true;
+		}
+};
+
 
 /**
  * Driver for multiple drivers
