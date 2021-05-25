@@ -1,0 +1,13 @@
+{
+  "name": "ZzzInput",
+  "keywords": "input, sensor",
+  "description": "Simple Arduino / C++ library to get input values from sensors",
+  "authors": {
+    "name": "Seralo",
+    "email": "seralo@free.fr",
+    "url": "https://github.com/seralo/ZzzInput"
+  },
+  "version": "1.0.0",
+  "frameworks": "arduino",
+  "platforms": "*"
+}
