@@ -10,11 +10,11 @@ ZzzInput input(inputDriver, 5000); //Instance to manage inputs, will read input 
 /** Callback invoked by input instance */
 void inputReady() {
 	Serial.print("Analog read:");
-	Serial.print(inputDriver.data.get());
+	Serial.print(inputDriver.get());
 	Serial.print(" min:");
-	Serial.print(inputDriver.data.min());
+	Serial.print(inputDriver.min());
 	Serial.print(" max:");
-	Serial.print(inputDriver.data.max());
+	Serial.print(inputDriver.max());
 	Serial.println();
 }
 

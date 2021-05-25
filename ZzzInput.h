@@ -4,6 +4,16 @@
 #ifndef ZZZ_INPUT_H
 #define ZZZ_INPUT_H
 
+//M5Stack PBHUB default address
+#define ZZZ_M5STACKPBHUB_ADDRESS 0x61
+//M5Stack PBHUB ports 1-6
+#define ZZZ_M5STACKPBHUB0        0x40
+#define ZZZ_M5STACKPBHUB1        0x50
+#define ZZZ_M5STACKPBHUB2        0x60
+#define ZZZ_M5STACKPBHUB3        0x70
+#define ZZZ_M5STACKPBHUB4        0x80
+#define ZZZ_M5STACKPBHUB5        0xA0
+
 #ifndef ZZZ_DATA_H
 	/* To replace ZzzData.h if not available */
 	template <typename T=int> class ZzzData {
@@ -35,16 +45,129 @@ class ZzzInputDriver {
  * @param PIN template param to specify which pin to read from.
  * @param DATA template param to specify class to use for data processing. It must be of type ZzzData<int>
  */
-template <int PIN, typename DATA> class ZzzInputDriverAnalogPin : public ZzzInputDriver {
+template <int PIN, typename DATA> class ZzzInputDriverAnalogPin : public ZzzInputDriver, public DATA {
 	public:
-		DATA data;
-
 		ZzzInputDriverAnalogPin() {
 		}
 
 		virtual bool read() override {
-			data.add(analogRead(PIN));
+			this->add(analogRead(PIN));
 			return true;
+		}
+};
+
+
+/**
+ * Driver to read analog sensor via M5Stack PbHub
+ * @param ADDRESS I2C address to access PbHub
+ * @param ANALOG_PORT Port on PbHub where sensor is connected
+ * @param WIRE template parameter allow to define custom Wire library
+ * @param DATA template param to specify class to use for data processing. It must be of type ZzzData<int>
+ */
+template <typename WIRE, typename DATA, uint8_t ANALOG_PORT=ZZZ_M5STACKPBHUB0, uint8_t ADDRESS=ZZZ_M5STACKPBHUB_ADDRESS> class ZzzInputDriverPbHubAnalog : public ZzzInputDriver, public DATA {
+	protected:
+		WIRE *_pWire;
+		const int COMMAND_A_ANALOG=0x06; //hub_a_read_value: analog read command on A wire
+
+	public:
+		ZzzInputDriverPbHubAnalog(WIRE& pParams) {
+			_pWire=&pParams;
+			_pWire->begin();
+		}
+
+		virtual bool read() override {
+			_pWire->beginTransmission(ADDRESS);
+			_pWire->write(ANALOG_PORT | COMMAND_A_ANALOG);
+			if (_pWire->endTransmission() != 0) { //communication error
+				return false;
+			}
+			_pWire->requestFrom(ADDRESS, (uint8_t)2);
+			uint8_t valueL=_pWire->read();
+			uint8_t valueH=_pWire->read();
+			uint16_t value=(valueH<<8) | valueL;
+			this->add(value);
+			return true;
+		}
+};
+
+
+/**
+ * Driver for multiple drivers
+ * NB_DRIVER is the number of drivers to allocate. It should match constructor call otherwise result is unpredictable. (Max 8 drivers)
+ */
+template <size_t NB_DRIVER> class ZzzInputDriverMulti : public ZzzInputDriver {
+	protected:
+		ZzzInputDriver *_pDriver[NB_DRIVER];
+
+	public:
+		/** At least 2 drivers (use directly the driver if only one driver) */
+		ZzzInputDriverMulti(ZzzInputDriver &driver1, ZzzInputDriver &driver2) {
+			_pDriver[0]=&driver1;
+			_pDriver[1]=&driver2;
+		}
+
+		ZzzInputDriverMulti(ZzzInputDriver &driver1, ZzzInputDriver &driver2, ZzzInputDriver &driver3) {
+			_pDriver[0]=&driver1;
+			_pDriver[1]=&driver2;
+			_pDriver[2]=&driver3;
+		}
+
+		ZzzInputDriverMulti(ZzzInputDriver &driver1, ZzzInputDriver &driver2, ZzzInputDriver &driver3, ZzzInputDriver &driver4) {
+			_pDriver[0]=&driver1;
+			_pDriver[1]=&driver2;
+			_pDriver[2]=&driver3;
+			_pDriver[3]=&driver4;
+		}
+
+		ZzzInputDriverMulti(ZzzInputDriver &driver1, ZzzInputDriver &driver2, ZzzInputDriver &driver3, ZzzInputDriver &driver4, ZzzInputDriver &driver5) {
+			_pDriver[0]=&driver1;
+			_pDriver[1]=&driver2;
+			_pDriver[2]=&driver3;
+			_pDriver[3]=&driver4;
+			_pDriver[4]=&driver5;
+		}
+
+		ZzzInputDriverMulti(ZzzInputDriver &driver1, ZzzInputDriver &driver2, ZzzInputDriver &driver3, ZzzInputDriver &driver4, ZzzInputDriver &driver5, ZzzInputDriver &driver6) {
+			_pDriver[0]=&driver1;
+			_pDriver[1]=&driver2;
+			_pDriver[2]=&driver3;
+			_pDriver[3]=&driver4;
+			_pDriver[4]=&driver5;
+			_pDriver[5]=&driver6;
+		}
+
+		ZzzInputDriverMulti(ZzzInputDriver &driver1, ZzzInputDriver &driver2, ZzzInputDriver &driver3, ZzzInputDriver &driver4, ZzzInputDriver &driver5, ZzzInputDriver &driver6, ZzzInputDriver &driver7) {
+			_pDriver[0]=&driver1;
+			_pDriver[1]=&driver2;
+			_pDriver[2]=&driver3;
+			_pDriver[3]=&driver4;
+			_pDriver[4]=&driver5;
+			_pDriver[5]=&driver6;
+			_pDriver[6]=&driver7;
+		}
+
+		ZzzInputDriverMulti(ZzzInputDriver &driver1, ZzzInputDriver &driver2, ZzzInputDriver &driver3, ZzzInputDriver &driver4, ZzzInputDriver &driver5, ZzzInputDriver &driver6, ZzzInputDriver &driver7, ZzzInputDriver &driver8) {
+			_pDriver[0]=&driver1;
+			_pDriver[1]=&driver2;
+			_pDriver[2]=&driver3;
+			_pDriver[3]=&driver4;
+			_pDriver[4]=&driver5;
+			_pDriver[5]=&driver6;
+			_pDriver[6]=&driver7;
+			_pDriver[7]=&driver8;
+		}
+
+		size_t size() {
+			return NB_DRIVER;
+		}
+
+		virtual bool read() override {
+			bool result=false;
+			for (int i=0;i<NB_DRIVER;i++) {
+				bool curResult=_pDriver[i]->read();
+				result=result || curResult;
+			}
+			return result;
 		}
 };
 
@@ -69,7 +192,7 @@ class ZzzInput {
 		static const unsigned long DEFAULT_INTERVAL_MS=1000;
 
 
-		/** Set the callback to call on each button state change. */
+		/** Set the callback to call on each change. */
 		void setCallback(ZzzInputCallback callback) {
 			_callback=callback;
 		}
@@ -88,7 +211,7 @@ class ZzzInput {
 		}
 
 		/** Constructor 
-		 * @param driver Underlying instance to access button(s).
+		 * @param driver Underlying instance to access input(s).
 		 * @param intervalMs minimum time in milliseconds to wait before next driver requests.
 		 */
 		ZzzInput(ZzzInputDriver &driver, unsigned long intervalMs=ZzzInput::DEFAULT_INTERVAL_MS) {

@@ -8,8 +8,8 @@ The library consist of a single header file (ZzzInput.h) containing template cla
 ### Constructor
 
 ```cpp
-ZzzInputDriverAnalogPins<pin1, pin2> inputDriver; //Define driver to manage 2 analog pins
-ZzzInput input(buttonDriver, intervalMs=1000); //Instance to manage inputs
+ZzzInputDriverAnalogPin<pin1> inputDriver; //Define driver to manage an analog pin
+ZzzInput input(inputDriver, intervalMs=1000); //Instance to manage inputs
 
 ```
 
