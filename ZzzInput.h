@@ -119,7 +119,7 @@ template <typename WIRE, typename DATA_TEMPERATURE, typename DATA_HUMIDITY, uint
 				return false;
 			}
 
-			// Data is 6 bytes: Temperature MSB,LSB,CRC, humidity MSB,LSB,CRC
+			// Data is 6 bytes: Temperature MSB,LSB,CRC, Humidity MSB,LSB,CRC
 			uint8_t data[6];
 			_pWire->requestFrom(ADDRESS, (uint8_t)6);
 			for (int i=0;i<6;i++) {
@@ -128,7 +128,7 @@ template <typename WIRE, typename DATA_TEMPERATURE, typename DATA_HUMIDITY, uint
 			uint16_t valueT=(data[0]<<8) | data[1];
 			uint16_t valueH=(data[3]<<8) | data[4];
 
-			//Temperature range is -45 - 130°C
+			//Temperature range is -45 - 130°C (range: 175)
 			long longTemperature=((valueT*175L)/65535)-45; //TODO *100 to keep 2 decimal digits ((valueT*17500)/65535)-4500);
 			temperature.add(longTemperature);
 			//Humidity range is 0 - 100 %
@@ -248,7 +248,7 @@ class ZzzInput {
 		/** To call frequently (ie: in Arduino loop) */
 		void update() {
 			//check elapsed time (overflow proof)
-			if (millis() - _lastRequestMs > _intervalMs) {
+			if (millis() - _lastRequestMs >= _intervalMs) {
 				bool readIsOk=_pDriver->read();
 				_lastRequestMs=millis();
 
